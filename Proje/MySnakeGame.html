@@ -1,0 +1,245 @@
+<!-- 
+    1- Create the Canvas(400x600)
+
+    2- Draw the initial state
+    2.1- Draw the initial snake 
+    2.2- Draw the initial food
+
+    3- Snake movement
+    3.1- Move the snake
+    3.1.1- Check the collision
+    3.1.1.1- Check the collision with the walls(gerek olmayabilir ama koydum)
+    3.1.1.2- Check the collision with the food
+    3.1.1.2.1- Grow the snake
+    3.1.1.3- Check the possible collision with the walls
+    3.1.1.4- Check the possible collision with the snake itself
+    3.1.2- Make the movement
+    
+    4- Draw the new state AND Loop the 3rd step
+
+    pause (menu) ekleyeyim
+    
+    arada bir 2 yemek ciksin biri zehirli. Zehirli yerse 2 ye bolunucek
+      arka yarinin kuyrugu bas olup oyle devam edicek. ve bu halde 2-3 yem 
+      yerse ve 1.nin kuyruguna ulasabilirse duzelicek. Deneme icin 1 kere 
+      bolunme ekleyebilirim mesela 18. yemi yiyince(puan 18 de)
+
+    veya oyunu soyle degistiririm kendini yedigin yerden bolunup hayatina devam
+      eder. solucan gibi.
+
+-->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <!-- <button onclick="gameStart()">Start the Game</button> -->
+<script>
+  const canvas = document.createElement('canvas');
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  const canvasWidth = 600;
+  const canvasHeight = 400;
+  canvas.width = canvasWidth;
+  canvas.height = canvasHeight;
+  canvas.style.border = '1px solid black';
+  const snake = [{x:canvasWidth/2, y:canvasHeight/2}]; //sani daha iyi yapilir cunku boyut degisinde tam 5 lik olmayabilir. Keyfi 905 lik yaomak isterse tam olmuyor ama basit ayarlanir. Gectim
+  let unitSize = 20;
+  let food = {x: snake[0].x + unitSize*5 , y: snake[0].y + unitSize*5};
+  let pressedKey = null; 
+  let gameOver = false;
+
+
+  //pressedKey null ise diyip giris menusunu koyabilirim. "For start use arrows"
+  //gibi bir sey yazabilir ekrana
+  
+  document.addEventListener('keydown', (e) => {
+    pressedKey = e.key;
+    //her hareket oncesi ogrenmek istiyorum.Ve bu degeri movementDirection la hareket oncesi kullaniyorum
+  })
+  document.addEventListener('keyup', () => {
+    pressedKey = null;
+  })
+  // const food = {x:Math.floor(Math.random() * (canvasWidth/5))*5, y:Math.floor(Math.random() * (canvasHeight/5))*5};
+  let dx = 0; // yon tuslatindan birine basinca oyun baslamis olur
+  let dy = 0; 
+
+  function drawSnake(){
+    ctx.beginPath();
+    ctx.fillStyle = 'green';
+    for ( const part of snake){
+      ctx.fillRect(part.x,part.y,unitSize,unitSize);
+    }
+    ctx.closePath();
+  }
+  
+  function drawFood(){
+    ctx.beginPath();
+    ctx.fillStyle = 'red';
+    ctx.fillRect(food.x,food.y,unitSize,unitSize);
+    ctx.closePath();
+  }
+
+  function moveSnake() {
+    //HIZLI GIDIYOR YA BUNU ANIMATION REQUESTLE YAVASLATABILIYOZMU BAKICAM
+    //YOKSA SET INTERVALE GECERIM DIREKT
+    movementDirection();
+    snake.unshift({x:snake[0].x +dx, y:snake[0].y +dy});  
+    if(checkFoodCollision()){
+      //Eylem gereksinmi yok
+    }else{
+      snake.pop();
+    }
+
+    
+    /* potansiyel sorunlarla iligi
+    https://www.w3schools.com/jsref/met_win_addeventlistener.asp
+    */
+    checkWallCollision();
+    checkSnakeCollision();
+    
+ 
+    /* 
+    Tek sorun cikabilecek durum yemegin en kenarda oldugu yerde 
+    kafalama duvara girmek ama onun icinde cozum gerekicek belki 
+    uzamayi yedikten biraz sonra yapabiliriz(refleks suresi taniyip)?*/
+
+  }
+
+  function movementDirection(){
+
+    if(pressedKey == null) return; 
+    switch(pressedKey){
+      case 'ArrowUp':
+        if(dy == unitSize) return;
+        dy = -unitSize;
+        dx = 0;
+        break;
+      case 'ArrowDown':
+          if(dy==-unitSize) return;
+          dy = unitSize;
+          dx = 0;
+        break;
+      case 'ArrowLeft':
+        if(dx == unitSize) return;
+        dx = -unitSize;
+        dy = 0;
+        break;
+      case 'ArrowRight':
+        if(dx == -unitSize) return;
+        dx = unitSize;
+        dy = 0;
+        break;
+      default: 
+        break;
+    }
+    
+  }
+
+
+  function checkWallCollision(){
+    if(snake[0].x < 0 || snake[0].x > canvasWidth-unitSize || 
+    snake[0].y < 0 || snake[0].y > canvasHeight - unitSize) {
+      gameOver = true;
+
+      // alert('Game Over');
+      //burada oyunu dondurmak istiyorum ve bir buttonla tekrar baslatmak istiyorum
+    }
+  }
+
+  function checkSnakeCollision(){
+    const isSnakeCollide = snake.some((part,index) => {
+      if(index == 0) return false; //her hangi bir sey icin true donse zaten some true donuyor.
+      return snake[0].x == part.x && snake[0].y == part.y;
+    })
+    
+    //calismadi isSnakeCollide ? alert('Game Over') : {}; //baska bir operator yok mu ya buraya gelebilecek acaba bu null un bur zarari olur mu?
+    
+    if (isSnakeCollide){
+      gameOver = true;
+      //alert('Game Over');;
+    }
+    
+  }
+
+  function checkFoodCollision(){
+    //esitlik kontrolunu === ile yapmaga gerek var mi?
+    if(snake[0].x >= food.x && snake[0].x < food.x +unitSize && 
+      snake[0].y >= food.y && snake[0].y < food.y +unitSize){
+      // snake.unshift({x:food.x,y:food.y});
+      // Burada degil moveSnake de yapmak daha aciklayici geldi
+      
+      /*
+      sorun cikabilecek durum yemegin en kenarda oldugu yerde 
+      kafalama duvara girmek ama onun icinde cozum gerekicek belki uzamayi 
+      yedikten biraz sonra yapabiliriz(refleks suresi taniyip)?
+      */
+      food = newFood();
+      return true;
+    }
+    return false;
+  }
+
+  function checkWin(){
+    if(snake.length == (canvasWidth/unitSize)*(canvasHeight/unitSize)){
+      alert('You Win');
+    }
+  }
+
+  function GameOver(){
+
+      alert("Game Over");
+      window.location.reload();
+    
+  }
+
+  function newFood() {
+    const potentialFood = foodLocation();
+    
+    const isOnSnake = (snake.some((part) => part.x == potentialFood.x && part.y == potentialFood.y))
+    
+    return isOnSnake ? newFood() : potentialFood;
+  }
+
+  function foodLocation() {
+    return {x:Math.floor(Math.random() * (canvasWidth/unitSize))*unitSize,
+            y:Math.floor(Math.random() * (canvasHeight/unitSize))*unitSize};
+  }
+
+  let lastTime = 0;
+  const gameSpeed = 100; // Adjust the game speed as needed
+
+  function gameStart(timestamp) {
+    if(gameOver){
+      GameOver();
+      return;
+    }
+    
+    if (!lastTime) lastTime = timestamp;
+    const elapsed = timestamp - lastTime;
+
+    if (elapsed > gameSpeed) {
+      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+      moveSnake();
+      drawSnake();
+      drawFood();
+      checkWin();
+      lastTime = timestamp;
+    }
+
+    requestAnimationFrame(gameStart);
+  }
+  
+
+  gameStart();
+
+</script>
+
+
+</body>
+</html>
